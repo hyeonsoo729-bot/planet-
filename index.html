@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>행성 공방</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eceaf3;
+  --panel:#ffffff;
+  --panel-2:#f3f2f8;
+  --text:#171525;
+  --muted:#6a6880;
+  --line:#e0deea;
+  --line-2:#cfccdd;
+  --accent:#6b5bd6;
+  --gold:#b8842f;
+  --void-1:#07070f;
+  --void-2:#12101f;
+  --shadow:0 1px 0 rgba(23,21,37,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0a0912;
+    --panel:#12111c;
+    --panel-2:#191824;
+    --text:#e9e7f3;
+    --muted:#9b98b2;
+    --line:#232130;
+    --line-2:#302d40;
+    --accent:#9a8cff;
+    --gold:#f0b45a;
+    --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0a0912; --panel:#12111c; --panel-2:#191824; --text:#e9e7f3;
+  --muted:#9b98b2; --line:#232130; --line-2:#302d40; --accent:#9a8cff; --gold:#f0b45a; --shadow:none;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:"Space Grotesk", ui-sans-serif, system-ui, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-size:14px; -webkit-text-size-adjust:100%;
+  overflow:hidden;
+}
+.app{display:grid; grid-template-columns:1fr 336px; height:100dvh; width:100%}
+
+/* ── 관측창 ───────────────────────────────── */
+.stage{position:relative; overflow:hidden; background:radial-gradient(120% 100% at 50% 40%, var(--void-2) 0%, var(--void-1) 70%)}
+.stage canvas{position:absolute; inset:0; display:block; touch-action:none; z-index:1}
+.hint{
+  position:absolute; left:18px; bottom:16px; z-index:2; max-width:min(60%,420px);
+  color:#b9b6cf; font-size:12.5px; line-height:1.6; letter-spacing:.01em;
+  text-shadow:0 1px 2px rgba(0,0,0,.6); pointer-events:none;
+  transition:opacity .6s ease;
+}
+.hint b{color:#efeafc; font-weight:500}
+.brand{
+  position:absolute; left:20px; top:16px; z-index:2; pointer-events:none; color:#e6e2f7;
+  text-shadow:0 1px 3px rgba(0,0,0,.7);
+}
+.brand h1{
+  margin:0; font-family:"Instrument Serif", Georgia, serif; font-style:italic;
+  font-weight:400; font-size:27px; line-height:1; letter-spacing:.01em;
+}
+.brand p{margin:5px 0 0; font-size:11.5px; color:#a09dba; letter-spacing:.06em}
+.mode-flag{
+  position:absolute; right:16px; top:16px; z-index:2; display:flex; gap:6px; align-items:center;
+  color:#cfcbe4; font-size:11.5px; background:rgba(10,9,18,.55); border:1px solid rgba(255,255,255,.09);
+  padding:5px 10px; border-radius:999px; backdrop-filter:blur(6px); pointer-events:none;
+}
+.mode-flag i{width:6px; height:6px; border-radius:50%; background:var(--gold); display:block}
+.spin-btn{
+  position:absolute; right:16px; top:52px; z-index:3; display:flex; gap:7px; align-items:center;
+  font:inherit; font-size:11.5px; color:#e2dff2; cursor:pointer;
+  background:rgba(10,9,18,.55); border:1px solid rgba(255,255,255,.14);
+  padding:6px 12px 6px 10px; border-radius:999px; backdrop-filter:blur(6px);
+}
+.spin-btn:hover{border-color:rgba(255,255,255,.35)}
+.spin-btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.spin-btn i{
+  width:11px; height:11px; display:block; flex:none; border-radius:2px;
+  background:#e2dff2; clip-path:polygon(0 0,38% 0,38% 100%,0 100%,0 0,62% 0,62% 100%,100% 100%,100% 0,62% 0);
+}
+.spin-btn[data-on="0"] i{clip-path:polygon(12% 0,100% 50%,12% 100%)}
+
+/* ── 조작판 ───────────────────────────────── */
+.panel{
+  background:var(--panel); border-left:1px solid var(--line);
+  overflow-y:auto; overscroll-behavior:contain; padding-bottom:28px;
+}
+.panel::-webkit-scrollbar{width:9px}
+.panel::-webkit-scrollbar-thumb{background:var(--line-2); border-radius:9px; border:3px solid var(--panel)}
+
+.panel-top{
+  position:sticky; top:0; z-index:4; background:var(--panel);
+  border-bottom:1px solid var(--line); padding:13px 16px 14px;
+}
+.save-btn{
+  width:100%; appearance:none; font:inherit; font-size:13.5px; font-weight:500;
+  padding:12px 14px; border-radius:9px; cursor:pointer;
+  background:var(--accent); border:1px solid var(--accent); color:#fff;
+}
+.save-btn:hover{filter:brightness(1.08)}
+.save-btn:disabled{opacity:.6; cursor:default; filter:none}
+.save-btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.panel-top .note{margin:9px 0 0}
+
+details.group{border-bottom:1px solid var(--line)}
+details.group>summary{
+  list-style:none; cursor:pointer; padding:13px 16px; display:flex; align-items:center; gap:9px;
+  font-weight:500; font-size:13px; letter-spacing:.02em; user-select:none;
+}
+details.group>summary::-webkit-details-marker{display:none}
+details.group>summary::after{
+  content:""; margin-left:auto; width:6px; height:6px; border-right:1.5px solid var(--muted);
+  border-bottom:1.5px solid var(--muted); transform:rotate(45deg) translateY(-2px); transition:transform .18s ease;
+}
+details.group[open]>summary::after{transform:rotate(225deg) translateY(-1px)}
+details.group>summary:hover{background:var(--panel-2)}
+summary .dot{width:7px; height:7px; border-radius:2px; background:var(--accent)}
+summary .tag{margin-left:auto; font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums}
+summary .tag+::after{margin-left:9px}
+.body{padding:2px 16px 16px}
+
+.ctl{display:block; margin:0 0 11px}
+.ctl>span{display:flex; justify-content:space-between; align-items:baseline; font-size:12px; color:var(--muted); margin-bottom:5px}
+.ctl output{font-variant-numeric:tabular-nums; color:var(--text); font-size:11.5px}
+input[type=range]{
+  -webkit-appearance:none; appearance:none; width:100%; height:16px; background:transparent; margin:0; display:block;
+}
+input[type=range]::-webkit-slider-runnable-track{height:2px; background:var(--line-2); border-radius:2px}
+input[type=range]::-moz-range-track{height:2px; background:var(--line-2); border-radius:2px}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:14px; height:14px; margin-top:-6px; border-radius:50%;
+  background:var(--panel); border:2px solid var(--accent); cursor:grab;
+}
+input[type=range]::-moz-range-thumb{width:12px; height:12px; border-radius:50%; background:var(--panel); border:2px solid var(--accent); cursor:grab}
+input[type=range]:focus-visible{outline:2px solid var(--accent); outline-offset:4px; border-radius:4px}
+
+.seg{display:flex; border:1px solid var(--line-2); border-radius:8px; overflow:hidden; margin:2px 0 14px}
+.seg button{
+  flex:1; appearance:none; border:0; background:var(--panel); color:var(--muted);
+  padding:9px 6px; font:inherit; font-size:12.5px; cursor:pointer;
+}
+.seg button+button{border-left:1px solid var(--line-2)}
+.seg button[aria-pressed=true]{background:var(--accent); color:#fff; font-weight:500}
+
+.row{display:flex; align-items:center; gap:10px; margin:0 0 12px}
+.row label{font-size:12px; color:var(--muted)}
+.row .grow{flex:1}
+input[type=color]{
+  -webkit-appearance:none; appearance:none; width:34px; height:26px; padding:0;
+  border:1px solid var(--line-2); border-radius:6px; background:none; cursor:pointer; flex:none;
+}
+input[type=color]::-webkit-color-swatch-wrapper{padding:2px}
+input[type=color]::-webkit-color-swatch{border:0; border-radius:4px}
+
+.swatches{display:grid; grid-template-columns:repeat(9,1fr); gap:5px; margin:0 0 13px}
+.swatches button{
+  aspect-ratio:1; border:1px solid rgba(0,0,0,.15); border-radius:5px; cursor:pointer; padding:0;
+  box-shadow:inset 0 0 0 0 var(--panel);
+}
+.swatches button[aria-pressed=true]{box-shadow:inset 0 0 0 2px var(--panel), 0 0 0 2px var(--accent)}
+
+.btns{display:flex; flex-wrap:wrap; gap:6px}
+.btn{
+  appearance:none; font:inherit; font-size:12.5px; padding:8px 11px; border-radius:7px; cursor:pointer;
+  background:var(--panel-2); border:1px solid var(--line-2); color:var(--text);
+}
+.btn:hover{border-color:var(--accent); color:var(--accent)}
+.btn.solid{background:var(--accent); border-color:var(--accent); color:#fff}
+.btn.solid:hover{color:#fff; filter:brightness(1.08)}
+.btn.warn:hover{border-color:#d0464a; color:#d0464a}
+.btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+.check{display:flex; align-items:center; gap:9px; font-size:12.5px; margin:0 0 13px; cursor:pointer}
+.check input{accent-color:var(--accent); width:15px; height:15px}
+
+.note{font-size:11.5px; color:var(--muted); line-height:1.65; margin:10px 0 0}
+.presets{display:grid; grid-template-columns:1fr 1fr; gap:6px}
+.presets button{
+  text-align:left; padding:9px 10px; border-radius:7px; border:1px solid var(--line-2);
+  background:var(--panel); cursor:pointer; font:inherit; font-size:12.5px; color:var(--text);
+  display:flex; align-items:center; gap:8px;
+}
+.presets button:hover{border-color:var(--accent)}
+.presets i{width:14px; height:14px; border-radius:50%; flex:none; box-shadow:inset -3px -3px 5px rgba(0,0,0,.45)}
+
+.moon{border:1px solid var(--line); border-radius:9px; padding:10px 11px 4px; margin:0 0 9px; background:var(--panel-2)}
+.moon .head{display:flex; align-items:center; gap:9px; margin-bottom:9px}
+.moon .name{font-size:12.5px; font-weight:500; flex:1}
+.moon .del{
+  appearance:none; border:0; background:none; color:var(--muted); cursor:pointer; font:inherit;
+  font-size:12px; padding:3px 5px; border-radius:5px;
+}
+.moon .del:hover{color:#d0464a; background:rgba(208,70,74,.1)}
+.empty{font-size:12px; color:var(--muted); padding:2px 0 12px}
+
+@media (max-width:880px){
+  .app{grid-template-columns:1fr; grid-template-rows:52dvh 1fr}
+  .panel{border-left:0; border-top:1px solid var(--line)}
+  .brand h1{font-size:22px}
+  .hint{font-size:11.5px; left:14px; bottom:12px; max-width:75%}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="stage" id="stage">
+    <div class="brand">
+      <h1>행성 공방</h1>
+      <p>PLANET STUDIO</p>
+    </div>
+    <div class="mode-flag"><i></i><span id="flagText">암석 행성</span></div>
+    <button class="spin-btn" id="spinBtn" data-on="1"><i></i><span>멈추기</span></button>
+    <div class="hint" id="hint">
+      <b>행성 위를 드래그</b>하면 색이 칠해집니다. <b>행성 바깥 빈 곳을 드래그</b>하면 손으로 돌려서 뒷면을 볼 수 있고, 휠이나 두 손가락으로 크게 볼 수 있어요.
+    </div>
+  </div>
+
+  <aside class="panel">
+    <div class="panel-top">
+      <button class="save-btn" id="saveBtn">그림 파일로 저장하기 (PNG)</button>
+      <p class="note" id="saveNote">칠한 행성은 자동으로 기억됩니다. 창을 닫았다 다시 열어도 그대로 이어서 칠할 수 있어요.</p>
+    </div>
+
+    <!-- 붓 -->
+    <details class="group" open>
+      <summary><span class="dot"></span>붓<span class="tag" id="brushTag"></span></summary>
+      <div class="body">
+        <div class="swatches" id="swatches"></div>
+        <div class="row">
+          <input type="color" id="brushColor" data-key="color" aria-label="붓 색">
+          <label class="grow" for="brushColor">직접 고른 색</label>
+          <button class="btn" id="pickBtn" title="행성에 칠한 색을 그대로 가져오기">칠한 색 가져오기</button>
+        </div>
+        <label class="ctl"><span>붓 크기<output></output></span><input type="range" data-key="size" min="8" max="240" step="1"></label>
+        <label class="ctl"><span>색 진하기<output></output></span><input type="range" data-key="alpha" min="0.04" max="1" step="0.01"></label>
+        <label class="ctl"><span>가장자리 부드럽게<output></output></span><input type="range" data-key="soft" min="0.05" max="1" step="0.01"></label>
+        <label class="ctl"><span>붓 자국 거칠기<output></output></span><input type="range" data-key="grain" min="0" max="1" step="0.01"></label>
+        <div class="btns">
+          <button class="btn" id="undoBtn">한 단계 되돌리기</button>
+          <button class="btn" id="fillBtn">행성 전체를 이 색으로</button>
+        </div>
+      </div>
+    </details>
+
+    <!-- 행성 표면 -->
+    <details class="group" open>
+      <summary><span class="dot"></span>표면<span class="tag" id="typeTag">암석</span></summary>
+      <div class="body">
+        <div class="seg" id="typeSeg">
+          <button data-type="rock" aria-pressed="true">암석형</button>
+          <button data-type="gas" aria-pressed="false">가스형</button>
+        </div>
+        <div id="gasOnly" hidden>
+          <label class="ctl"><span>색이 옆으로 길게 늘어나기<output></output></span><input type="range" data-key="band" min="0" max="7" step="0.1"></label>
+          <label class="ctl"><span>스스로 은은하게 빛나기<output></output></span><input type="range" data-key="gasSheen" min="0" max="1" step="0.01"></label>
+          <div class="btns"><button class="btn" id="smearBtn">칠한 색 옆으로 문지르기</button></div>
+          <p class="note">가스형은 칠한 색이 옆으로 길게 퍼져 줄무늬가 되고, 표면이 매끈해집니다.</p>
+        </div>
+        <div id="rockOnly">
+          <label class="ctl"><span>표면 울퉁불퉁하게<output></output></span><input type="range" data-key="bump" min="0" max="0.09" step="0.001"></label>
+          <label class="ctl"><span>울퉁불퉁한 무늬 크기<output></output></span><input type="range" data-key="bumpScale" min="1" max="10" step="0.5"></label>
+          <label class="ctl"><span>반짝이는 정도<output></output></span><input type="range" data-key="gloss" min="0" max="1" step="0.01"></label>
+          <p class="note">암석형은 땅이 울퉁불퉁해 보이고, 붓 자국에 자잘한 알갱이가 섞입니다.</p>
+        </div>
+      </div>
+    </details>
+
+    <!-- 대기 -->
+    <details class="group">
+      <summary><span class="dot"></span>행성 주변 빛<span class="tag" id="atmoTag"></span></summary>
+      <div class="body">
+        <label class="check"><input type="checkbox" data-key="atmoOn"><span>행성 테두리에 빛 두르기</span></label>
+        <div class="row"><input type="color" data-key="atmoColor" id="atmoColor" aria-label="빛 색"><label class="grow" for="atmoColor">빛 색</label></div>
+        <label class="ctl"><span>밝기<output></output></span><input type="range" data-key="atmoStrength" min="0" max="2.5" step="0.01"></label>
+        <label class="ctl"><span>넓게 퍼지기<output></output></span><input type="range" data-key="atmoSize" min="1.01" max="1.3" step="0.005"></label>
+      </div>
+    </details>
+
+    <!-- 고리 -->
+    <details class="group">
+      <summary><span class="dot"></span>고리<span class="tag" id="ringTag">없음</span></summary>
+      <div class="body">
+        <label class="check"><input type="checkbox" data-key="ringOn"><span>고리 두르기</span></label>
+        <div class="row"><input type="color" data-key="ringColor" id="ringColor" aria-label="고리 색"><label class="grow" for="ringColor">고리 색</label></div>
+        <label class="ctl"><span>행성에서 떨어진 거리<output></output></span><input type="range" data-key="ringInner" min="1.15" max="2.6" step="0.01"></label>
+        <label class="ctl"><span>고리 넓이<output></output></span><input type="range" data-key="ringOuter" min="1.3" max="3.8" step="0.01"></label>
+        <label class="ctl"><span>고리 기울기<output></output></span><input type="range" data-key="ringTilt" min="-70" max="70" step="1"></label>
+        <label class="ctl"><span>고리 진하기<output></output></span><input type="range" data-key="ringAlpha" min="0.05" max="1" step="0.01"></label>
+        <label class="ctl"><span>고리 무늬 바꾸기<output></output></span><input type="range" data-key="ringSeed" min="0" max="40" step="1"></label>
+      </div>
+    </details>
+
+    <!-- 위성 -->
+    <details class="group">
+      <summary><span class="dot"></span>위성<span class="tag" id="moonTag">0개</span></summary>
+      <div class="body">
+        <div class="btns" style="margin-bottom:12px">
+          <button class="btn solid" id="addMoon">위성 추가</button>
+          <button class="btn warn" id="clearMoons">위성 전부 지우기</button>
+        </div>
+        <div id="moonList"></div>
+      </div>
+    </details>
+
+    <!-- 돌리기 -->
+    <details class="group" open>
+      <summary><span class="dot"></span>돌리기<span class="tag" id="spinTag">저절로 돌기</span></summary>
+      <div class="body">
+        <div class="seg" id="spinSeg">
+          <button data-spin="1" aria-pressed="true">저절로 돌기</button>
+          <button data-spin="0" aria-pressed="false">멈추기</button>
+        </div>
+        <label class="ctl" id="spinSpeedCtl"><span>도는 속도<output></output></span><input type="range" data-key="spin" min="0" max="1.2" step="0.01"></label>
+        <label class="ctl"><span>행성 기울어진 정도<output></output></span><input type="range" data-key="axis" min="-45" max="45" step="1"></label>
+        <p class="note">멈춰 둔 상태에서도 <b>행성 바깥 빈 곳을 드래그</b>하면 손으로 돌려 볼 수 있습니다. 화면 오른쪽 위 버튼으로도 돌리고 멈출 수 있어요.</p>
+      </div>
+    </details>
+
+    <!-- 빛과 배경 -->
+    <details class="group">
+      <summary><span class="dot"></span>빛과 배경</summary>
+      <div class="body">
+        <label class="ctl"><span>햇빛이 비치는 방향<output></output></span><input type="range" data-key="light" min="0" max="360" step="1"></label>
+        <label class="ctl"><span>햇빛 밝기<output></output></span><input type="range" data-key="lightPower" min="0.2" max="3" step="0.01"></label>
+        <label class="check"><input type="checkbox" data-key="stars"><span>뒤에 별 보이기</span></label>
+      </div>
+    </details>
+
+    <!-- 정리 -->
+    <details class="group">
+      <summary><span class="dot"></span>처음부터 다시</summary>
+      <div class="body">
+        <div class="btns">
+          <button class="btn warn" id="wipeBtn">칠한 것 모두 지우기</button>
+        </div>
+        <p class="note">칠한 색만 지워지고, 고리·위성 설정은 그대로 남습니다.</p>
+      </div>
+    </details>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+
+/* ══════════════ 상태 ══════════════ */
+var S = {
+  type:'rock',
+  color:'#c2703c', size:70, alpha:0.75, soft:0.7, grain:0.35,
+  band:2.6, gasSheen:0.35,
+  bump:0.028, bumpScale:4, gloss:0.15,
+  atmoOn:true, atmoColor:'#7db6ff', atmoStrength:0.85, atmoSize:1.075,
+  ringOn:false, ringColor:'#d9c7a2', ringInner:1.4, ringOuter:2.25, ringTilt:14, ringAlpha:0.85, ringSeed:7,
+  autoSpin:true, spin:0.16, axis:12, light:35, lightPower:1.5, stars:true
+};
+var BASE_COLOR = '#3a4250';
+
+var PALETTES = {
+  rock:['#2c4a63','#3f7a5e','#7d6a4f','#c2703c','#8e3b2f','#d8cdb8','#f2efe6','#4a4550','#151318'],
+  gas :['#d8b78a','#c98f5a','#8f5f3f','#e8dcc3','#6f8fb8','#b9c9d8','#e0e8ef','#7a5d7c','#2a2430']
+};
+
+/* ══════════════ 그림용 캔버스 ══════════════ */
+var W = 2048, H = 1024;
+var paint = document.createElement('canvas');
+paint.width = W; paint.height = H;
+var ctx = paint.getContext('2d', {willReadFrequently:true});
+var dirty = true;
+var undoStack = [];
+
+function pushUndo(){
+  var c = document.createElement('canvas'); c.width = W; c.height = H;
+  c.getContext('2d').drawImage(paint,0,0);
+  undoStack.push(c);
+  if (undoStack.length > 6) undoStack.shift();
+}
+function doUndo(){
+  var c = undoStack.pop(); if(!c) return;
+  ctx.clearRect(0,0,W,H); ctx.drawImage(c,0,0); dirty = true;
+}
+
+function hexRgb(h){
+  h = h.replace('#','');
+  if (h.length===3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+  var n = parseInt(h,16);
+  return [(n>>16)&255,(n>>8)&255,n&255];
+}
+function rgba(hex,a){ var c = hexRgb(hex); return 'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')'; }
+function shade(hex,f){
+  var c = hexRgb(hex);
+  return 'rgb('+Math.max(0,Math.min(255,Math.round(c[0]*f)))+','+
+    Math.max(0,Math.min(255,Math.round(c[1]*f)))+','+
+    Math.max(0,Math.min(255,Math.round(c[2]*f)))+')';
+}
+
+/* 한 번 찍기 — 위도에 따라 가로로 늘려 극지방 왜곡을 보정 */
+function stamp(cx, cy, r, hex, alpha, soft, grain, gas, band){
+  var lat = (cy/H - 0.5) * Math.PI;
+  var sx = 1 / Math.max(Math.cos(lat), 0.06);
+  if (sx > 12) sx = 12;
+  if (gas) sx *= (1 + band * 0.85);
+  var i, off, offs = [-W, 0, W];
+  for (i=0;i<3;i++){
+    off = offs[i];
+    ctx.save();
+    ctx.translate(cx + off, cy);
+    ctx.scale(sx, 1);
+    var g = ctx.createRadialGradient(0,0,0,0,0,r);
+    g.addColorStop(0, rgba(hex, alpha));
+    g.addColorStop(Math.max(0.02, 1 - soft), rgba(hex, alpha * 0.5));
+    g.addColorStop(1, rgba(hex, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(0,0,r,0,6.2832); ctx.fill();
+
+    if (grain > 0.01){
+      var n = Math.round(grain * 16), k;
+      for (k=0;k<n;k++){
+        var a = Math.random()*6.2832, rr = Math.sqrt(Math.random())*r*0.95;
+        ctx.globalAlpha = alpha * grain * (0.25 + Math.random()*0.5);
+        ctx.fillStyle = shade(hex, 0.62 + Math.random()*0.75);
+        ctx.beginPath();
+        if (gas) ctx.ellipse(Math.cos(a)*rr, Math.sin(a)*rr, r*0.28, r*0.05, 0, 0, 6.2832);
+        else ctx.arc(Math.cos(a)*rr, Math.sin(a)*rr, r*(0.06+Math.random()*0.13), 0, 6.2832);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
+  dirty = true;
+}
+
+function stroke(x0,y0,x1,y1){
+  if (Math.abs(x1-x0) > W/2) x0 += (x1 > x0 ? W : -W);
+  var r = S.size, d = Math.hypot(x1-x0, y1-y0);
+  var step = Math.max(r*0.22, 2), n = Math.max(1, Math.ceil(d/step)), i;
+  var gas = S.type === 'gas';
+  for (i=1;i<=n;i++){
+    var t = i/n;
+    var x = x0 + (x1-x0)*t, y = y0 + (y1-y0)*t;
+    x = ((x % W) + W) % W;
+    markPole(y);
+    stamp(x, y, r, S.color, S.alpha, S.soft, S.grain, gas, S.band);
+  }
+  tidyPoles(false);
+}
+
+/* 가로로 번지게 하기 (가스 띠 효과) */
+var tmpC = document.createElement('canvas');
+function smearX(strength){
+  tmpC.width = W; tmpC.height = H;
+  tmpC.getContext('2d').drawImage(paint,0,0);
+  var offs = [-4,-2,-1,1,2,4], i, j, o;
+  ctx.globalAlpha = 0.3;
+  for (i=0;i<offs.length;i++){
+    o = offs[i]*strength;
+    for (j=-1;j<=1;j++) ctx.drawImage(tmpC, o + j*W, 0);
+  }
+  ctx.globalAlpha = 1;
+  dirty = true;
+}
+
+/* 극점에서는 그림의 세로줄이 한 점으로 모여 바람개비 무늬가 생긴다.
+   극에 가까운 줄일수록 그 줄의 평균색으로 섞어 평평하게 만든다. */
+function smoothPoles(){
+  var band = Math.round(H*0.075), pole, r, x;
+  for (pole=0; pole<2; pole++){
+    var y0 = pole === 0 ? 0 : H - band;
+    var img = ctx.getImageData(0, y0, W, band), d = img.data;
+    for (r=0; r<band; r++){
+      var fromPole = (pole === 0) ? r : (band - 1 - r);
+      var w = Math.pow(1 - fromPole/band, 2.4);
+      if (w < 0.02) continue;
+      var o = r*W*4, sr = 0, sg = 0, sb = 0, q;
+      for (x=0;x<W;x++){ q = o+x*4; sr += d[q]; sg += d[q+1]; sb += d[q+2]; }
+      sr /= W; sg /= W; sb /= W;
+      for (x=0;x<W;x++){
+        q = o+x*4;
+        d[q]   = d[q]  *(1-w) + sr*w;
+        d[q+1] = d[q+1]*(1-w) + sg*w;
+        d[q+2] = d[q+2]*(1-w) + sb*w;
+        d[q+3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, y0);
+  }
+  dirty = true;
+}
+var poleTouched = false, poleTimer = 0;
+function markPole(cy){
+  if (cy < H*0.1 || cy > H*0.9) poleTouched = true;
+}
+function tidyPoles(force){
+  if (!poleTouched) return;
+  var now = Date.now();
+  if (!force && now - poleTimer < 200) return;
+  poleTimer = now;
+  smoothPoles();
+  if (force) poleTouched = false;
+}
+
+function fillBase(hex){
+  ctx.fillStyle = hex; ctx.fillRect(0,0,W,H); dirty = true;
+}
+
+/* ══════════════ 3D 무대 ══════════════ */
+var stage = document.getElementById('stage');
+var renderer = new THREE.WebGLRenderer({antialias:true, alpha:true, preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+renderer.setSize(stage.clientWidth, stage.clientHeight);
+stage.appendChild(renderer.domElement);
+
+var scene = new THREE.Scene();
+var camera = new THREE.PerspectiveCamera(42, stage.clientWidth/Math.max(1,stage.clientHeight), 0.1, 200);
+var camDist = 4.2, yaw = 0.5, pitch = 0.28;
+function updateCam(){
+  var p = Math.max(-1.35, Math.min(1.35, pitch));
+  camera.position.set(camDist*Math.cos(p)*Math.sin(yaw), camDist*Math.sin(p), camDist*Math.cos(p)*Math.cos(yaw));
+  camera.lookAt(0,0,0);
+}
+updateCam();
+
+var tex = new THREE.CanvasTexture(paint);
+tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+tex.wrapS = THREE.RepeatWrapping;
+
+/* 울퉁불퉁한 무늬 — 구(球) 위에서 직접 계산해 극점에서 뭉치지 않게 한다 */
+function h3(i,j,k){ var n = Math.sin(i*127.1 + j*311.7 + k*74.7)*43758.5453; return n - Math.floor(n); }
+function vn3(x,y,z){
+  var xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z);
+  var xf = x-xi, yf = y-yi, zf = z-zi;
+  var u = xf*xf*(3-2*xf), v = yf*yf*(3-2*yf), w = zf*zf*(3-2*zf);
+  var c000=h3(xi,yi,zi), c100=h3(xi+1,yi,zi), c010=h3(xi,yi+1,zi), c110=h3(xi+1,yi+1,zi);
+  var c001=h3(xi,yi,zi+1), c101=h3(xi+1,yi,zi+1), c011=h3(xi,yi+1,zi+1), c111=h3(xi+1,yi+1,zi+1);
+  var x00=c000+(c100-c000)*u, x10=c010+(c110-c010)*u, x01=c001+(c101-c001)*u, x11=c011+(c111-c011)*u;
+  var y0=x00+(x10-x00)*v, y1=x01+(x11-x01)*v;
+  return y0+(y1-y0)*w;
+}
+function makeSphereNoise(freq){
+  var sw = 1024, sh = 512;
+  var c = document.createElement('canvas'); c.width = sw; c.height = sh;
+  var x2 = c.getContext('2d'), img = x2.createImageData(sw,sh), d = img.data, i, j;
+  for (j=0;j<sh;j++){
+    var lat = (0.5 - j/sh)*Math.PI, cl = Math.cos(lat), sy = Math.sin(lat);
+    for (i=0;i<sw;i++){
+      var lon = (i/sw)*Math.PI*2;
+      var X = cl*Math.cos(lon), Y = sy, Z = cl*Math.sin(lon);
+      var f = freq, a = 0.5, n = 0, o;
+      for (o=0;o<4;o++){ n += vn3(X*f+11.3, Y*f+3.7, Z*f+7.1)*a; f *= 2.1; a *= 0.5; }
+      var v = Math.round(Math.max(0, Math.min(1, n))*255);
+      var q = (j*sw+i)*4;
+      d[q]=d[q+1]=d[q+2]=v; d[q+3]=255;
+    }
+  }
+  x2.putImageData(img,0,0);
+  var t2 = new THREE.CanvasTexture(c);
+  t2.wrapS = THREE.RepeatWrapping;
+  t2.wrapT = THREE.ClampToEdgeWrapping;
+  return t2;
+}
+function bumpFreq(){ return 1.6 + S.bumpScale*1.4; }
+var noiseTex = makeSphereNoise(bumpFreq());
+
+var noiseTimer = null;
+function rebuildNoise(){
+  if (noiseTimer) clearTimeout(noiseTimer);
+  noiseTimer = setTimeout(function(){
+    var old = noiseTex;
+    noiseTex = makeSphereNoise(bumpFreq());
+    planetMat.bumpMap = (S.type === 'gas') ? null : noiseTex;
+    planetMat.needsUpdate = true;
+    var i;
+    for (i=0;i<moons.length;i++){ moons[i].mat.bumpMap = noiseTex; moons[i].mat.needsUpdate = true; }
+    if (old) old.dispose();
+  }, 260);
+}
+
+var planetMat = new THREE.MeshStandardMaterial({map:tex, roughness:0.9, metalness:0, bumpMap:noiseTex, bumpScale:S.bump});
+var planet = new THREE.Mesh(new THREE.SphereGeometry(1, 128, 80), planetMat);
+var planetGroup = new THREE.Group();
+planetGroup.add(planet);
+scene.add(planetGroup);
+
+/* 대기 */
+var atmoMat = new THREE.ShaderMaterial({
+  uniforms:{ uColor:{value:new THREE.Color(S.atmoColor)}, uStrength:{value:S.atmoStrength}, uPower:{value:2.6} },
+  vertexShader:'varying vec3 vN; varying vec3 vP; void main(){ vN=normalize(normalMatrix*normal); vec4 mv=modelViewMatrix*vec4(position,1.0); vP=mv.xyz; gl_Position=projectionMatrix*mv; }',
+  fragmentShader:'uniform vec3 uColor; uniform float uStrength; uniform float uPower; varying vec3 vN; varying vec3 vP; void main(){ vec3 V=normalize(-vP); float f=pow(1.0-abs(dot(vN,V)),uPower); gl_FragColor=vec4(uColor, f*uStrength); }',
+  side:THREE.BackSide, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false
+});
+var atmo = new THREE.Mesh(new THREE.SphereGeometry(1, 64, 40), atmoMat);
+atmo.scale.setScalar(S.atmoSize);
+planetGroup.add(atmo);
+
+/* 고리 */
+var ringMesh = null;
+function ringTexture(hex, seed){
+  var c = document.createElement('canvas'); c.width = 1024; c.height = 1;
+  var x = c.getContext('2d'), rgb = hexRgb(hex), i;
+  function h1(v){ var n = Math.sin(v*12.9898 + seed*7.13)*43758.5453; return n - Math.floor(n); }
+  function fbm(v){
+    var s = 0, a = 0.5, f = 1, k;
+    for (k=0;k<5;k++){
+      var xi = Math.floor(v*f), xf = v*f - xi, u = xf*xf*(3-2*xf);
+      s += (h1(xi)*(1-u) + h1(xi+1)*u) * a;
+      a *= 0.55; f *= 2.3;
+    }
+    return s;
+  }
+  for (i=0;i<1024;i++){
+    var t = i/1024;
+    var v = fbm(t*9 + 0.3);
+    var al = 0.1 + 0.9*Math.min(1, v*1.5);
+    if (t>0.40 && t<0.455) al *= 0.04;
+    if (t>0.70 && t<0.735) al *= 0.18;
+    if (t>0.86 && t<0.885) al *= 0.35;
+    if (t<0.04) al *= t/0.04;
+    if (t>0.96) al *= (1-t)/0.04;
+    var l = 0.7 + 0.5*v;
+    x.fillStyle = 'rgba('+Math.min(255,Math.round(rgb[0]*l))+','+Math.min(255,Math.round(rgb[1]*l))+','+
+      Math.min(255,Math.round(rgb[2]*l))+','+al.toFixed(3)+')';
+    x.fillRect(i,0,1,1);
+  }
+  return new THREE.CanvasTexture(c);
+}
+function buildRings(){
+  if (ringMesh){
+    planetGroup.remove(ringMesh);
+    ringMesh.geometry.dispose();
+    if (ringMesh.material.map) ringMesh.material.map.dispose();
+    ringMesh.material.dispose();
+    ringMesh = null;
+  }
+  document.getElementById('ringTag').textContent = S.ringOn ? '있음' : '없음';
+  if (!S.ringOn) return;
+  var inner = S.ringInner, outer = Math.max(S.ringOuter, inner + 0.12);
+  var g = new THREE.RingGeometry(inner, outer, 192, 1);
+  var pos = g.attributes.position, uv = g.attributes.uv, v = new THREE.Vector3(), i;
+  for (i=0;i<pos.count;i++){
+    v.fromBufferAttribute(pos,i);
+    uv.setXY(i, (v.length()-inner)/(outer-inner), 0.5);
+  }
+  var m = new THREE.MeshBasicMaterial({
+    map:ringTexture(S.ringColor, S.ringSeed), transparent:true, opacity:S.ringAlpha,
+    side:THREE.DoubleSide, depthWrite:false
+  });
+  ringMesh = new THREE.Mesh(g, m);
+  ringMesh.rotation.x = -Math.PI/2 + S.ringTilt*Math.PI/180;
+  planetGroup.add(ringMesh);
+}
+
+/* 위성 */
+var moonRoot = new THREE.Group();
+scene.add(moonRoot);
+var moons = [];
+var moonGeo = new THREE.SphereGeometry(1, 32, 20);
+var moonId = 0;
+
+function addMoon(opt){
+  if (moons.length >= 8) return;
+  opt = opt || {};
+  var m = {
+    id: ++moonId,
+    color: opt.color || ['#b9b4ab','#8f8a86','#d6d1c4','#7d8b96','#9c8878'][Math.floor(Math.random()*5)],
+    size: opt.size !== undefined ? opt.size : +(0.08 + Math.random()*0.16).toFixed(2),
+    dist: opt.dist !== undefined ? opt.dist : +(1.9 + Math.random()*2.6).toFixed(2),
+    speed: opt.speed !== undefined ? opt.speed : +(0.15 + Math.random()*0.5).toFixed(2),
+    tilt: opt.tilt !== undefined ? opt.tilt : Math.round((Math.random()-0.5)*60),
+    phase: Math.random()*6.2832
+  };
+  var pivot = new THREE.Group();
+  var mat = new THREE.MeshStandardMaterial({color:new THREE.Color(m.color), roughness:1, metalness:0, bumpMap:noiseTex, bumpScale:0.015});
+  var mesh = new THREE.Mesh(moonGeo, mat);
+  pivot.add(mesh);
+  moonRoot.add(pivot);
+  m.pivot = pivot; m.mesh = mesh; m.mat = mat;
+  applyMoon(m);
+  moons.push(m);
+  renderMoonList();
+}
+function applyMoon(m){
+  m.mesh.scale.setScalar(m.size);
+  m.pivot.rotation.x = m.tilt*Math.PI/180;
+  m.mat.color.set(m.color);
+}
+function removeMoon(id){
+  var i;
+  for (i=0;i<moons.length;i++) if (moons[i].id===id){
+    moonRoot.remove(moons[i].pivot);
+    moons[i].mat.dispose();
+    moons.splice(i,1); break;
+  }
+  renderMoonList();
+}
+function clearMoons(){
+  while (moons.length){ moonRoot.remove(moons[0].pivot); moons[0].mat.dispose(); moons.shift(); }
+  renderMoonList();
+}
+
+var moonList = document.getElementById('moonList');
+function renderMoonList(){
+  document.getElementById('moonTag').textContent = moons.length + '개';
+  if (!moons.length){ moonList.innerHTML = '<p class="empty">위성이 없습니다. 추가하면 행성 주위를 돌기 시작해요.</p>'; return; }
+  var html = '', i;
+  for (i=0;i<moons.length;i++){
+    var m = moons[i];
+    html +=
+    '<div class="moon" data-id="'+m.id+'">'+
+      '<div class="head">'+
+        '<input type="color" value="'+m.color+'" data-f="color" aria-label="위성 색">'+
+        '<span class="name">위성 '+(i+1)+'</span>'+
+        '<button class="del" data-f="del">삭제</button>'+
+      '</div>'+
+      '<label class="ctl"><span>크기<output>'+m.size.toFixed(2)+'</output></span><input type="range" data-f="size" min="0.03" max="0.45" step="0.01" value="'+m.size+'"></label>'+
+      '<label class="ctl"><span>거리<output>'+m.dist.toFixed(2)+'</output></span><input type="range" data-f="dist" min="1.5" max="7" step="0.05" value="'+m.dist+'"></label>'+
+      '<label class="ctl"><span>도는 속도<output>'+m.speed.toFixed(2)+'</output></span><input type="range" data-f="speed" min="0" max="1.5" step="0.01" value="'+m.speed+'"></label>'+
+      '<label class="ctl"><span>도는 길 기울기<output>'+m.tilt+'°</output></span><input type="range" data-f="tilt" min="-80" max="80" step="1" value="'+m.tilt+'"></label>'+
+    '</div>';
+  }
+  moonList.innerHTML = html;
+}
+moonList.addEventListener('input', function(e){
+  var box = e.target.closest('.moon'); if(!box) return;
+  var id = +box.dataset.id, f = e.target.dataset.f, i;
+  for (i=0;i<moons.length;i++) if (moons[i].id===id){
+    var m = moons[i];
+    if (f==='color') m.color = e.target.value;
+    else m[f] = parseFloat(e.target.value);
+    var out = e.target.parentElement.querySelector('output');
+    if (out) out.textContent = (f==='tilt') ? m.tilt+'°' : (+m[f]).toFixed(2);
+    applyMoon(m);
+    autoSave();
+    break;
+  }
+});
+moonList.addEventListener('click', function(e){
+  if (e.target.dataset && e.target.dataset.f === 'del'){
+    var box = e.target.closest('.moon');
+    removeMoon(+box.dataset.id);
+    autoSave();
+  }
+});
+
+/* 조명과 별 */
+var sun = new THREE.DirectionalLight(0xfff3e2, S.lightPower);
+scene.add(sun);
+scene.add(new THREE.AmbientLight(0x5a6a8a, 0.32));
+var rim = new THREE.DirectionalLight(0x8fa8ff, 0.28);
+rim.position.set(-4,1.5,-3);
+scene.add(rim);
+function updateLight(){
+  var a = S.light*Math.PI/180;
+  sun.position.set(Math.cos(a)*5, 2.2, Math.sin(a)*5);
+  sun.intensity = S.lightPower;
+}
+updateLight();
+
+var stars;
+(function(){
+  var n = 1600, pos = new Float32Array(n*3), col = new Float32Array(n*3), i;
+  for (i=0;i<n;i++){
+    var r = 30 + Math.random()*40, th = Math.random()*6.2832, ph = Math.acos(2*Math.random()-1);
+    pos[i*3] = r*Math.sin(ph)*Math.cos(th);
+    pos[i*3+1] = r*Math.cos(ph);
+    pos[i*3+2] = r*Math.sin(ph)*Math.sin(th);
+    var t = 0.6 + Math.random()*0.4;
+    col[i*3] = t; col[i*3+1] = t*(0.9+Math.random()*0.1); col[i*3+2] = Math.min(1,t*1.1);
+  }
+  var g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos,3));
+  g.setAttribute('color', new THREE.BufferAttribute(col,3));
+  stars = new THREE.Points(g, new THREE.PointsMaterial({size:0.22, vertexColors:true, sizeAttenuation:true, transparent:true, opacity:0.9}));
+  scene.add(stars);
+})();
+
+/* 재질 갱신 */
+function updateMaterial(){
+  var gas = S.type === 'gas';
+  planetMat.bumpScale = gas ? 0 : S.bump;
+  planetMat.bumpMap = gas ? null : noiseTex;
+  planetMat.roughness = gas ? 1 : (1 - S.gloss*0.85);
+  planetMat.metalness = 0;
+  planetMat.emissive = new THREE.Color(gas ? S.atmoColor : '#000000');
+  planetMat.emissiveIntensity = gas ? S.gasSheen*0.16 : 0;
+  planetMat.needsUpdate = true;
+  document.getElementById('typeTag').textContent = gas ? '가스' : '암석';
+  document.getElementById('flagText').textContent = gas ? '가스 행성' : '암석 행성';
+  document.getElementById('gasOnly').hidden = !gas;
+  document.getElementById('rockOnly').hidden = gas;
+}
+function updateAtmo(){
+  atmo.visible = S.atmoOn;
+  atmoMat.uniforms.uColor.value.set(S.atmoColor);
+  atmoMat.uniforms.uStrength.value = S.atmoStrength;
+  atmo.scale.setScalar(S.atmoSize);
+  document.getElementById('atmoTag').textContent = S.atmoOn ? '켜짐' : '꺼짐';
+  if (S.type === 'gas') updateMaterial();
+}
+
+/* ══════════════ 입력 처리 ══════════════ */
+var ray = new THREE.Raycaster();
+var ndc = new THREE.Vector2();
+var pointers = new Map();
+var painting = false, rotating = false, lastUV = null, pinchStart = 0, distStart = 0, picking = false;
+var yawVel = 0, pitchVel = 0;
+var el = renderer.domElement;
+
+function hitPlanet(ev){
+  var rect = el.getBoundingClientRect();
+  ndc.x = ((ev.clientX-rect.left)/rect.width)*2 - 1;
+  ndc.y = -((ev.clientY-rect.top)/rect.height)*2 + 1;
+  ray.setFromCamera(ndc, camera);
+  var hits = ray.intersectObject(planet, false);
+  return hits.length ? hits[0] : null;
+}
+function uvToXY(uv){ return [uv.x*W, (1-uv.y)*H]; }
+
+el.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+el.addEventListener('pointerdown', function(e){
+  el.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  hideHint();
+  if (pointers.size === 2){
+    painting = false; rotating = false; lastUV = null;
+    var p = Array.from(pointers.values());
+    pinchStart = Math.hypot(p[0].x-p[1].x, p[0].y-p[1].y);
+    distStart = camDist;
+    return;
+  }
+  yawVel = 0; pitchVel = 0;
+  var hit = (e.button === 2) ? null : hitPlanet(e);
+  if (hit && picking){
+    var xy = uvToXY(hit.uv);
+    var d = ctx.getImageData(Math.round(xy[0])%W, Math.max(0,Math.min(H-1,Math.round(xy[1]))), 1,1).data;
+    var hex = '#' + [d[0],d[1],d[2]].map(function(v){ return ('0'+v.toString(16)).slice(-2); }).join('');
+    S.color = hex;
+    document.getElementById('brushColor').value = hex;
+    syncSwatches();
+    setPicking(false);
+    return;
+  }
+  if (hit){
+    painting = true;
+    pushUndo();
+    var p0 = uvToXY(hit.uv);
+    lastUV = p0;
+    markPole(p0[1]);
+    stamp(p0[0], p0[1], S.size, S.color, S.alpha, S.soft, S.grain, S.type==='gas', S.band);
+  } else {
+    rotating = true;
+  }
+});
+el.addEventListener('pointermove', function(e){
+  var prev = pointers.get(e.pointerId);
+  if (!prev) return;
+  var dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+  pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+
+  if (pointers.size === 2){
+    var p = Array.from(pointers.values());
+    var d = Math.hypot(p[0].x-p[1].x, p[0].y-p[1].y);
+    if (pinchStart > 4){
+      camDist = Math.max(1.9, Math.min(12, distStart * (pinchStart/d)));
+      updateCam();
+    }
+    return;
+  }
+  if (painting){
+    var hit = hitPlanet(e);
+    if (hit){
+      var p1 = uvToXY(hit.uv);
+      if (lastUV) stroke(lastUV[0], lastUV[1], p1[0], p1[1]);
+      else { markPole(p1[1]); stamp(p1[0], p1[1], S.size, S.color, S.alpha, S.soft, S.grain, S.type==='gas', S.band); }
+      lastUV = p1;
+    } else {
+      lastUV = null;
+    }
+  } else if (rotating){
+    yaw -= dx*0.006;
+    pitch = Math.max(-1.35, Math.min(1.35, pitch + dy*0.006));
+    yawVel = -dx*0.0035;
+    pitchVel = dy*0.0035;
+    updateCam();
+  }
+});
+function endPointer(e){
+  pointers.delete(e.pointerId);
+  if (pointers.size === 0){
+    if (painting){ tidyPoles(true); autoSave(); }
+    painting = false; rotating = false; lastUV = null;
+  }
+}
+el.addEventListener('pointerup', endPointer);
+el.addEventListener('pointercancel', endPointer);
+el.addEventListener('wheel', function(e){
+  e.preventDefault();
+  camDist = Math.max(1.9, Math.min(12, camDist * (1 + Math.sign(e.deltaY)*0.09)));
+  updateCam();
+}, {passive:false});
+
+window.addEventListener('keydown', function(e){
+  if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); doUndo(); }
+});
+
+var hintEl = document.getElementById('hint'), hintGone = false;
+function hideHint(){
+  if (hintGone) return; hintGone = true;
+  hintEl.style.opacity = '0';
+  setTimeout(function(){ hintEl.hidden = true; }, 700);
+}
+
+function setPicking(on){
+  picking = on;
+  var b = document.getElementById('pickBtn');
+  b.classList.toggle('solid', on);
+  b.textContent = on ? '행성을 눌러 색 가져오기' : '칠한 색 가져오기';
+  el.style.cursor = on ? 'crosshair' : '';
+}
+document.getElementById('pickBtn').addEventListener('click', function(){ setPicking(!picking); });
+
+/* ══════════════ 조작판 연결 ══════════════ */
+function fmt(k,v){
+  if (k==='axis'||k==='light'||k==='ringTilt') return Math.round(v)+'°';
+  if (k==='size') return Math.round(v)+'px';
+  if (k==='ringSeed') return String(Math.round(v));
+  if (k==='bump') return v.toFixed(3);
+  return (+v).toFixed(2);
+}
+function onChange(k){
+  if (k.indexOf('ring')===0) buildRings();
+  else if (k.indexOf('atmo')===0) updateAtmo();
+  else if (k==='bumpScale'){ updateMaterial(); rebuildNoise(); }
+  else if (k==='bump'||k==='gloss'||k==='gasSheen') updateMaterial();
+  else if (k==='axis') planetGroup.rotation.z = S.axis*Math.PI/180;
+  else if (k==='light'||k==='lightPower') updateLight();
+  else if (k==='stars') stars.visible = S.stars;
+  else if (k==='size'||k==='alpha') updateBrushTag();
+  else if (k==='spin') updateSpinBtn();
+}
+function updateBrushTag(){
+  document.getElementById('brushTag').textContent = Math.round(S.size)+'px';
+}
+var inputs = document.querySelectorAll('[data-key]');
+Array.prototype.forEach.call(inputs, function(inp){
+  var k = inp.dataset.key;
+  if (inp.type === 'checkbox'){ inp.checked = !!S[k]; }
+  else { inp.value = S[k]; }
+  var out = inp.parentElement.querySelector('output');
+  if (out) out.textContent = fmt(k, S[k]);
+  inp.addEventListener('input', function(){
+    if (inp.type === 'checkbox') S[k] = inp.checked;
+    else if (inp.type === 'color') S[k] = inp.value;
+    else S[k] = parseFloat(inp.value);
+    if (out) out.textContent = fmt(k, S[k]);
+    if (k === 'color') syncSwatches();
+    onChange(k);
+    autoSave();
+  });
+});
+
+/* 색 견본 */
+var swWrap = document.getElementById('swatches');
+function renderSwatches(){
+  var pal = PALETTES[S.type], html = '', i;
+  for (i=0;i<pal.length;i++)
+    html += '<button style="background:'+pal[i]+'" data-c="'+pal[i]+'" title="'+pal[i]+'" aria-pressed="false"></button>';
+  swWrap.innerHTML = html;
+  syncSwatches();
+}
+function syncSwatches(){
+  Array.prototype.forEach.call(swWrap.children, function(b){
+    b.setAttribute('aria-pressed', b.dataset.c.toLowerCase() === S.color.toLowerCase() ? 'true' : 'false');
+  });
+}
+swWrap.addEventListener('click', function(e){
+  var c = e.target.dataset && e.target.dataset.c;
+  if (!c) return;
+  S.color = c;
+  document.getElementById('brushColor').value = c;
+  syncSwatches();
+});
+
+/* 저절로 돌기 토글 */
+var spinBtn = document.getElementById('spinBtn');
+var spinSeg = document.getElementById('spinSeg');
+function updateSpinBtn(){
+  var on = !!S.autoSpin;
+  spinBtn.dataset.on = on ? '1' : '0';
+  spinBtn.querySelector('span').textContent = on ? '멈추기' : '돌리기';
+  document.getElementById('spinTag').textContent = on ? '저절로 돌기' : '멈춤';
+  Array.prototype.forEach.call(spinSeg.children, function(b){
+    b.setAttribute('aria-pressed', (b.dataset.spin === '1') === !!S.autoSpin ? 'true' : 'false');
+  });
+  var ctl = document.getElementById('spinSpeedCtl');
+  ctl.style.opacity = S.autoSpin ? '1' : '.45';
+}
+function setAutoSpin(on){
+  S.autoSpin = on;
+  if (on && S.spin < 0.02){
+    S.spin = 0.16;
+    var sl = document.querySelector('input[data-key="spin"]');
+    if (sl){ sl.value = S.spin; sl.parentElement.querySelector('output').textContent = fmt('spin', S.spin); }
+  }
+  updateSpinBtn();
+}
+spinBtn.addEventListener('click', function(){ setAutoSpin(!S.autoSpin); autoSave(); });
+spinSeg.addEventListener('click', function(e){
+  var v = e.target.dataset && e.target.dataset.spin;
+  if (v === undefined) return;
+  setAutoSpin(v === '1');
+  autoSave();
+});
+
+/* 표면 유형 */
+document.getElementById('typeSeg').addEventListener('click', function(e){
+  var t = e.target.dataset && e.target.dataset.type;
+  if (!t) return;
+  S.type = t;
+  Array.prototype.forEach.call(this.children, function(b){
+    b.setAttribute('aria-pressed', b.dataset.type === t ? 'true' : 'false');
+  });
+  updateMaterial();
+  renderSwatches();
+  autoSave();
+});
+
+/* 도구 버튼 */
+document.getElementById('undoBtn').addEventListener('click', doUndo);
+document.getElementById('fillBtn').addEventListener('click', function(){ pushUndo(); fillBase(S.color); autoSave(); });
+document.getElementById('smearBtn').addEventListener('click', function(){ pushUndo(); smearX(4); smoothPoles(); autoSave(); });
+document.getElementById('wipeBtn').addEventListener('click', function(){
+  pushUndo(); fillBase(BASE_COLOR); autoSave();
+});
+document.getElementById('addMoon').addEventListener('click', function(){ addMoon(); autoSave(); });
+document.getElementById('clearMoons').addEventListener('click', function(){ clearMoons(); autoSave(); });
+
+function syncAllInputs(){
+  Array.prototype.forEach.call(inputs, function(inp){
+    var k = inp.dataset.key;
+    if (inp.type === 'checkbox') inp.checked = !!S[k];
+    else inp.value = S[k];
+    var out = inp.parentElement.querySelector('output');
+    if (out) out.textContent = fmt(k, S[k]);
+  });
+  Array.prototype.forEach.call(document.getElementById('typeSeg').children, function(b){
+    b.setAttribute('aria-pressed', b.dataset.type === S.type ? 'true' : 'false');
+  });
+  renderSwatches();
+  updateMaterial(); updateAtmo(); buildRings(); updateLight(); updateBrushTag(); updateSpinBtn();
+  planetGroup.rotation.z = S.axis*Math.PI/180;
+  stars.visible = S.stars;
+}
+
+/* PNG 내려받기 */
+var KEY = 'planet-studio-v1';
+var noteEl = document.getElementById('saveNote');
+var saveBtn = document.getElementById('saveBtn');
+function note(msg){ noteEl.textContent = msg; }
+
+function snapshotBlob(){
+  renderer.render(scene, camera);
+  var src = renderer.domElement;
+  var out = document.createElement('canvas');
+  out.width = src.width; out.height = src.height;
+  var o = out.getContext('2d');
+  var g = o.createRadialGradient(out.width*0.5, out.height*0.4, 0,
+    out.width*0.5, out.height*0.4, Math.max(out.width, out.height)*0.8);
+  g.addColorStop(0, '#12101f'); g.addColorStop(1, '#07070f');
+  o.fillStyle = g; o.fillRect(0,0,out.width,out.height);
+  o.drawImage(src, 0, 0);
+  return new Promise(function(res){ out.toBlob(res, 'image/png'); });
+}
+
+saveBtn.addEventListener('click', function(){
+  saveBtn.disabled = true;
+  note('그림을 만들고 있습니다…');
+  snapshotBlob().then(function(blob){
+    if (!blob) throw new Error('no blob');
+    var name = 'planet-' + new Date().toISOString().slice(0,10) + '.png';
+    var dl = (window.claude && window.claude.use) ? window.claude.use('downloads') : Promise.resolve(null);
+    return dl.then(function(downloads){
+      if (downloads){
+        return downloads.save({filename:name, data:blob}).then(function(){
+          note('그림 파일로 저장했습니다.');
+        }, function(err){
+          var c = err && err.code;
+          if (c === 'declined') note('저장을 취소했습니다.');
+          else if (c === 'rate_limited') note('잠시 뒤에 다시 눌러 주세요.');
+          else note('저장할 수 없었습니다. 화면 캡처로 대신 남겨 주세요.');
+        });
+      }
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+      note('그림 파일을 내려받았습니다.');
+    });
+  }).catch(function(){
+    note('저장할 수 없었습니다. 화면 캡처로 대신 남겨 주세요.');
+  }).then(function(){
+    saveBtn.disabled = false;
+  });
+});
+
+/* 자동 기억 (이 브라우저에만 남습니다) */
+var restoring = true, autoTimer = null;
+function packMoons(){
+  return moons.map(function(m){
+    return {color:m.color, size:m.size, dist:m.dist, speed:m.speed, tilt:m.tilt};
+  });
+}
+function autoSaveNow(){
+  if (restoring) return;
+  var small = document.createElement('canvas');
+  small.width = 1024; small.height = 512;
+  small.getContext('2d').drawImage(paint, 0, 0, 1024, 512);
+  var body = {s:S, m:packMoons()};
+  try{
+    body.img = small.toDataURL('image/jpeg', 0.85);
+    localStorage.setItem(KEY, JSON.stringify(body));
+  }catch(err){
+    try{ delete body.img; localStorage.setItem(KEY, JSON.stringify(body)); }catch(e2){}
+  }
+}
+function autoSave(){
+  if (restoring) return;
+  if (autoTimer) clearTimeout(autoTimer);
+  autoTimer = setTimeout(autoSaveNow, 1200);
+}
+window.addEventListener('visibilitychange', function(){
+  if (document.visibilityState === 'hidden') autoSaveNow();
+});
+window.addEventListener('pagehide', autoSaveNow);
+
+function restore(){
+  var raw = null;
+  try{ raw = localStorage.getItem(KEY); }catch(e){}
+  if (!raw){ restoring = false; return false; }
+  try{
+    var pack = JSON.parse(raw), k;
+    for (k in pack.s) if (Object.prototype.hasOwnProperty.call(S, k)) S[k] = pack.s[k];
+    syncAllInputs();
+    clearMoons();
+    (pack.m || []).forEach(function(m){ addMoon(m); });
+    if (pack.img){
+      var img = new Image();
+      img.onload = function(){
+        ctx.clearRect(0,0,W,H);
+        ctx.drawImage(img, 0, 0, W, H);
+        smoothPoles();
+        dirty = true;
+        restoring = false;
+      };
+      img.onerror = function(){ restoring = false; };
+      img.src = pack.img;
+    } else {
+      restoring = false;
+    }
+    return true;
+  }catch(e){ restoring = false; return false; }
+}
+
+/* ══════════════ 그리기 루프 ══════════════ */
+function resize(){
+  var w = stage.clientWidth, h = Math.max(1, stage.clientHeight);
+  renderer.setSize(w,h);
+  camera.aspect = w/h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
+
+var clock = new THREE.Clock(), t = 0;
+function loop(){
+  var dt = Math.min(0.05, clock.getDelta());
+  if (S.autoSpin) t += dt;
+  if (!painting && S.autoSpin) planet.rotation.y += S.spin*dt;
+  if (!rotating && (Math.abs(yawVel) > 0.0002 || Math.abs(pitchVel) > 0.0002)){
+    yaw += yawVel;
+    pitch = Math.max(-1.35, Math.min(1.35, pitch + pitchVel));
+    yawVel *= 0.92; pitchVel *= 0.92;
+    updateCam();
+  }
+  if (ringMesh && S.autoSpin) ringMesh.rotation.z += S.spin*dt*0.12;
+  var i;
+  for (i=0;i<moons.length;i++){
+    var m = moons[i], a = m.phase + t*m.speed;
+    m.pivot.children[0].position.set(Math.cos(a)*m.dist, 0, Math.sin(a)*m.dist);
+    m.pivot.children[0].rotation.y = -a;
+  }
+  if (dirty){ tex.needsUpdate = true; dirty = false; }
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+
+/* ══════════════ 시작 ══════════════ */
+renderSwatches();
+updateBrushTag();
+updateMaterial();
+updateAtmo();
+buildRings();
+renderMoonList();
+planetGroup.rotation.z = S.axis*Math.PI/180;
+if (!restore()){
+  fillBase(BASE_COLOR);
+  addMoon({color:'#b9b4ab', size:0.14, dist:2.4, speed:0.3, tilt:8});
+}
+updateSpinBtn();
+resize();
+loop();
+})();
+</script>
+</body>
+</html>
